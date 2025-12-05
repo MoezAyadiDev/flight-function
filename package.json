@@ -2,11 +2,11 @@
   "name": "flight-function",
   "version": "1.0.0",
   "description": "Flight functions",
-  "main": "index.js",
+  "main": "hello.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only api/index.ts",
+    "dev": "ts-node-dev --respawn --transpile-only api/hello.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/hello.js"
   },
   "keywords": [],
   "author": "",
