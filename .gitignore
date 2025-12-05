@@ -25,6 +25,7 @@ build/
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+tsconfig.json
 
 # Your custom folders
 configs/
