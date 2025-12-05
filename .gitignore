@@ -28,3 +28,4 @@ pnpm-lock.yaml
 
 # Your custom folders
 configs/
+server/
