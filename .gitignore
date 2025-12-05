@@ -1,1 +1,30 @@
-.vercel
+# Dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Builds
+dist/
+build/
+
+# Environment
+.env
+.env.*
+
+# Editor
+.vscode/
+.idea/
+
+# System
+.DS_Store
+
+# Optional lockfiles
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Your custom folders
+configs/
