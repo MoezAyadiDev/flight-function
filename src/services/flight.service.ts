@@ -1,3 +1,5 @@
-export function flightService() {
-  return { message: "Retriving flight info" };
+import { getAirports } from "../database/airport.repo";
+export async function flightService() {
+  const air = await getAirports();
+  return air;
 }
