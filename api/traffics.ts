@@ -1,4 +1,6 @@
 import http from "http";
+import { flightService } from "../src/flight.service";
+import { initDatabaseService } from "../src/init.database.service";
 
 const PORT = process.env.PORT || 3000;
 
@@ -8,12 +10,24 @@ const server = http.createServer((req, res) => {
 
   // JSON header
   res.setHeader("Content-Type", "application/json");
-
-  if (url === "/api/hello" && method === "GET") {
-    return res.end(JSON.stringify({ message: "Hello from Node + TS API!" }));
+  if (req.method === "GET") {
+    if (req.url === "/flight") {
+      return res.end(JSON.stringify(flightService()));
+    }
+    if (req.url === "/init") {
+      return res.end(JSON.stringify(initDatabaseService()));
+    }
   }
 
-  if (url === "/api/time" && method === "GET") {
+  // if (url === "/api/hello" && method === "GET") {
+  //   return res.end(JSON.stringify({ message: "Hello from Node + TS API!" }));
+  // }
+
+  // if (url === "/api/time" && method === "GET") {
+  //   return res.end(JSON.stringify({ now: Date.now() }));
+  // }
+
+  if (method === "POST") {
     return res.end(JSON.stringify({ now: Date.now() }));
   }
 
