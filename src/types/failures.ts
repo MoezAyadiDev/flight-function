@@ -23,3 +23,9 @@ export class AutorisationFailures extends Failures {
     );
   }
 }
+
+export class MethodeFailures extends Failures {
+  constructor() {
+    super(400, "Methode_Failure", "Methode not allowed");
+  }
+}
