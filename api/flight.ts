@@ -9,9 +9,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     parseFlight(req);
     return res.json(await flightService());
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof Failures) {
       res.status(error.statusCode).json(error.toJson());
     }
+    res.status(500).json({
+      code: "SERVER_FAIL",
+      message: error?.message ?? error,
+    });
   }
 }

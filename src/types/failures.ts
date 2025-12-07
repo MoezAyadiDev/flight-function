@@ -26,6 +26,26 @@ export class AutorisationFailures extends Failures {
 
 export class MethodeFailures extends Failures {
   constructor() {
-    super(400, "Methode_Failure", "Methode not allowed");
+    super(400, "METHOD_FAILURE", "Methode not allowed");
+  }
+}
+
+export class QueryFailure extends Failures {
+  constructor(text: string) {
+    super(
+      400,
+      "MISSING_PARAMETER",
+      `The request is missing the required ${text} parameter`
+    );
+  }
+}
+
+export class QueryTypeFailure extends Failures {
+  constructor(text: string, typeQuery: string) {
+    super(
+      400,
+      "WRONG_PARAMETER",
+      `Invalid parameter '${text}'. Value must be exactly '${typeQuery}' (case-sensitive).`
+    );
   }
 }
