@@ -19,9 +19,8 @@ import fetchFlightInfoFw from "../services/fw.service";
 
 export async function flightEndpoint(reqFlight: RequestFlight) {
   //Get flight from database
-  const flight = findFlightByIdentifier(reqFlight.flightNum);
+  const flight = await findFlightByIdentifier(reqFlight.flightNum);
   if (flight) return flight;
-
   //if flight not exist
 
   //Get IFlightAirline
