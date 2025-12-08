@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { initDatabaseService } from "../src/services/init.database.service";
+import { initEndpoint } from "../src/endpoints/init.endpoint";
 import { parseInit } from "../src/utils/parse.request";
 import { Failures } from "../src/types/failures";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     parseInit(req);
-    const response = await initDatabaseService();
+    const response = await initEndpoint();
     return res.json(response);
   } catch (error: any) {
     if (error instanceof Failures) {

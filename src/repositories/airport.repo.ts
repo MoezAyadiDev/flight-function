@@ -61,3 +61,16 @@ export async function findAirportByIata(iata: string): Promise<Airport | null> {
   if (error) throw new Error(error.message);
   return data;
 }
+
+//Find airport by Name
+export async function findAirportByName(
+  airportName: string
+): Promise<Airport | null> {
+  const { data, error } = await db
+    .from(tableName)
+    .select("*")
+    .like("airport_name", `%${airportName}%`)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}

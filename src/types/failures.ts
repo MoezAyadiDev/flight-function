@@ -49,3 +49,9 @@ export class QueryTypeFailure extends Failures {
     );
   }
 }
+
+export class TimeCallFailure extends Failures {
+  constructor() {
+    super(400, "TIME_CALL_EXCEEDED", "The web site block request");
+  }
+}

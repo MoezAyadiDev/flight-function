@@ -1,13 +1,13 @@
 import { countAirlines, insertAirlines } from "../repositories/airline.repo";
 import { countAirports, insertAirports } from "../repositories/airport.repo";
-import { fetchAirlines, fetchAirports } from "./fr.service";
+import { fetchAirlines, fetchAirports } from "../services/fr.service";
 import {
   AeroportInsert,
   countAeroports,
   insertAeroports,
 } from "../repositories/aeroport.repo";
 
-export async function initDatabaseService() {
+export async function initEndpoint() {
   //Airlines
   const airlineNumber = await countAirlines();
   if (airlineNumber === 0) {
@@ -26,6 +26,7 @@ export async function initDatabaseService() {
       console.log(`Airport insert ${airportApi.length} rows`);
     }
   }
+  //Aeroport
   const aeroportNumber = await countAeroports();
   if (airlineNumber === 0) {
     const responseInsert = await insertAeroports(aeroports);
@@ -33,8 +34,8 @@ export async function initDatabaseService() {
       console.log(`Aeroport insert ${aeroports.length} rows`);
     }
   }
-  //Aeroport
-  return { message: "Database initilising ..." };
+
+  return { status: true };
 }
 
 const aeroports: AeroportInsert[] = [
