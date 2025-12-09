@@ -53,6 +53,7 @@ export async function fetchFlightInfoFr(
   try {
     await awaitCall();
     const responseFR = await getFlightInfo(airlineFlightNum);
+
     if (responseFR) {
       return responseFR;
     } else {

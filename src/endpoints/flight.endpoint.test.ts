@@ -15,7 +15,7 @@ import { fetchFlightInfoFr } from "../services/fr.service";
 import fetchFlightInfoFw from "../services/fw.service";
 import { fetchFlightInfoAi } from "../services/ai.service";
 
-export async function flightEndpoint(reqFlight: RequestFlight) {
+export async function flightEndpointTest(reqFlight: RequestFlight) {
   //Get flight from database
   const flight = await findFlightByIdentifier(reqFlight.flightNum);
   if (flight) return flight;
@@ -25,19 +25,21 @@ export async function flightEndpoint(reqFlight: RequestFlight) {
   const airlineFlightNum = await getFlightNumfromAirline(reqFlight.flightNum);
 
   //Get Flight info from fr and fw
-  const [resultFR, resultFW, resultAi] = await Promise.all([
-    fetchFlightInfoFr(airlineFlightNum),
-    fetchFlightInfoFw(airlineFlightNum),
+  const [resultFR, resultFW] = await Promise.all([
+    //fetchFlightInfoFr(airlineFlightNum),
+    undefined,
     fetchFlightInfoAi(airlineFlightNum),
+    // fetchFlightInfoFw(airlineFlightNum),
   ]);
+  return [resultFR, resultFW];
 
-  if (!resultFR && !resultFW && !resultAi) {
+  if (!resultFR && !resultFW) {
     console.error(`Flight info not found ${reqFlight.flightNum}`);
   }
   //Get best result or default
   const finalFlightInfo = await getBestResult(
     reqFlight,
-    { fr: resultFR, fw: resultFW, ai: resultAi },
+    { fr: resultFR, fw: resultFW },
     airlineFlightNum
   );
 
@@ -46,11 +48,7 @@ export async function flightEndpoint(reqFlight: RequestFlight) {
 
 async function getBestResult(
   reqFlight: RequestFlight,
-  allResponse: {
-    fr: FlightInsert | undefined;
-    fw: FlightInsert | undefined;
-    ai: FlightInsert | undefined;
-  },
+  allResponse: { fr: FlightInsert | undefined; fw: FlightInsert | undefined },
   flightNum: IFlightAirline
 ): Promise<FlightInsert> {
   const isArrival: boolean = reqFlight.typeTraffic === "Arrival";
@@ -59,7 +57,6 @@ async function getBestResult(
   let fromAirportReponse = await getAirportFromResult(
     allResponse.fr?.from_code_airport,
     allResponse.fw?.from_code_airport,
-    allResponse.ai?.from_code_airport,
     isArrival ? undefined : reqFlight.airport
   );
   finalResult.from_code_airport = fromAirportReponse.code;
@@ -69,7 +66,6 @@ async function getBestResult(
   let toAirportReponse = await getAirportFromResult(
     allResponse.fr?.to_code_airport,
     allResponse.fw?.to_code_airport,
-    allResponse.ai?.to_code_airport,
     isArrival ? reqFlight.airport : undefined
   );
 
@@ -120,7 +116,6 @@ function defaultFlight(
 async function getAirportFromResult(
   codeAirportFr: string | undefined,
   codeAirportFw: string | undefined,
-  codeAirportAi: string | undefined,
   airportCodeQuery: string | undefined
 ) {
   const airportResults = [];
@@ -129,9 +124,6 @@ async function getAirportFromResult(
   }
   if (codeAirportFw) {
     airportResults.push(codeAirportFw);
-  }
-  if (codeAirportAi) {
-    airportResults.push(codeAirportAi);
   }
   if (airportResults.length > 0) {
     const realAirport = occurence(airportResults);
@@ -166,7 +158,6 @@ async function getAirportFromResult(
 function getFlightSchedule(thirdParty: {
   fr: FlightInsert | undefined;
   fw: FlightInsert | undefined;
-  ai: FlightInsert | undefined;
 }) {
   let departureList = [];
   if (thirdParty.fr) {
@@ -174,9 +165,6 @@ function getFlightSchedule(thirdParty: {
   }
   if (thirdParty.fw) {
     departureList.push(thirdParty.fw.departure_time);
-  }
-  if (thirdParty.ai) {
-    departureList.push(thirdParty.ai.departure_time);
   }
   if (departureList.length > 0) {
     const realDeparture = occurence(departureList);
@@ -190,8 +178,6 @@ function getFlightSchedule(thirdParty: {
       arrival = thirdParty.fr.arrival_time;
     } else if (thirdParty.fw && thirdParty.fw.departure_time === departure) {
       arrival = thirdParty.fw.arrival_time;
-    } else if (thirdParty.ai && thirdParty.ai.departure_time === departure) {
-      arrival = thirdParty.ai.arrival_time;
     } else {
       return undefined;
     }
@@ -203,7 +189,6 @@ function getFlightSchedule(thirdParty: {
 function getFlightTime(thirdParty: {
   fr: FlightInsert | undefined;
   fw: FlightInsert | undefined;
-  ai: FlightInsert | undefined;
 }) {
   let timeList = [];
   if (thirdParty.fr) {
@@ -211,9 +196,6 @@ function getFlightTime(thirdParty: {
   }
   if (thirdParty.fw) {
     timeList.push(thirdParty.fw.flight_time);
-  }
-  if (thirdParty.ai) {
-    timeList.push(thirdParty.ai.flight_time);
   }
 
   if (timeList.length > 0) {
@@ -228,8 +210,6 @@ function getFlightTime(thirdParty: {
       duration = thirdParty.fr.duration;
     } else if (thirdParty.fw && thirdParty.fw.flight_time === flightTime) {
       duration = thirdParty.fw.duration;
-    } else if (thirdParty.ai && thirdParty.ai.flight_time === flightTime) {
-      duration = thirdParty.ai.duration;
     } else {
       return undefined;
     }

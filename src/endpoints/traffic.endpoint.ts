@@ -79,9 +79,13 @@ export async function trafficEndpoint(traficsSubscribe: RequestTraffic[]) {
     if (subsToInsert.length > 0) {
       const responseSubInsert = await insertSubscriptions(subsToInsert);
       return { Status: responseSubInsert };
+    } else {
+      throw new InsertFailure("Subscriptons");
     }
   }
-  return { Status: false };
+  return { Status: true, message: "All traffic already exist" };
+  //   Flight info not found EZY6331
+  // ERROR: TypeError: history.last is not a function
 }
 
 async function getTraffic(
