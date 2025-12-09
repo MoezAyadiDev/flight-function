@@ -3,9 +3,13 @@ import {
   AutorisationFailures,
   MethodeFailures,
   QueryTypeFailure,
+  QueryListFailure,
+  QueryItemFailure,
+  QueryTypeItemFailure,
 } from "../types/failures";
-import { RequestFlight } from "../types/request.body";
+import { RequestFlight, RequestTraffic } from "../types/request.body";
 import { QueryFailure } from "../types/failures";
+import { isDateValid } from "./date.util";
 
 function autorizationMiddleware(hed: any) {
   const autorisation = hed["functionkey"];
@@ -39,18 +43,57 @@ export function parseFlight(req: any): RequestFlight {
   if (!["Arrival", "Departure"].includes(flightRequest.typeTraffic)) {
     throw new QueryTypeFailure("typeTraffic", "Arrival or Departure");
   }
-  if (!flightRequest.fromAirport) {
-    throw new QueryFailure("fromAirport");
-  }
-  if (!flightRequest.toAirport) {
-    throw new QueryFailure("toAirport");
-  }
-  if (!flightRequest.heure) {
-    throw new QueryFailure("heure");
-  }
-  if (!flightRequest.airline) {
-    throw new QueryFailure("compagnie");
+  if (!flightRequest.airport) {
+    throw new QueryFailure("airport");
   }
 
   return flightRequest;
+}
+
+function parseTraffic(trafficItem: any): RequestTraffic {
+  if (!trafficItem) throw new QueryFailure("flightNum");
+
+  if (!trafficItem.flightNum) throw new QueryFailure("flightNum");
+
+  if (!trafficItem.typeTraffic)
+    throw new QueryItemFailure("typeTraffic", trafficItem.flightNum);
+
+  if (!["Arrival", "Departure"].includes(trafficItem.typeTraffic)) {
+    throw new QueryTypeItemFailure(
+      "typeTraffic",
+      "Arrival or Departure",
+      trafficItem.flightNum
+    );
+  }
+  if (!trafficItem.flightDate) {
+    throw new QueryItemFailure("flightDate", trafficItem.flightNum);
+  }
+  if (!isDateValid(trafficItem.flightDate)) {
+    throw new QueryTypeItemFailure(
+      "flightDate",
+      "AAAAMMDD",
+      trafficItem.flightNum
+    );
+  }
+
+  if (!trafficItem.airport) {
+    throw new QueryItemFailure("airport", trafficItem.flightNum);
+  }
+
+  return trafficItem;
+}
+
+export function parseTraffics(req: any) {
+  autorizationMiddleware(req.headers);
+  methodeMiddleware(req.method);
+  const trafficRequest: RequestTraffic[] = req.body;
+  if (!Array.isArray(trafficRequest)) {
+    throw new QueryListFailure();
+  }
+  const listBody: RequestTraffic[] = [];
+  for (const trafficItem of trafficRequest) {
+    listBody.push(parseTraffic(trafficItem));
+  }
+
+  return listBody;
 }

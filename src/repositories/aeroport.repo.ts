@@ -19,3 +19,16 @@ export async function insertAeroports(
   const responseInsert = await db.from(tableName).insert(input);
   return responseInsert.status === 201 ? true : false;
 }
+
+//Find aeroport by code
+export async function findAeroportByCode(
+  code: string
+): Promise<Aeroport | null> {
+  const { data, error } = await db
+    .from(tableName)
+    .select("*")
+    .eq("code", code)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}

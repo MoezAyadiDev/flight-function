@@ -2,10 +2,7 @@ import {
   getFlightNumfromAirline,
   IFlightAirline,
 } from "../repositories/airline.repo";
-import {
-  findAirportByIata,
-  findAirportByName,
-} from "../repositories/airport.repo";
+import { findAirportByIata } from "../repositories/airport.repo";
 import {
   findFlightByIdentifier,
   FlightInsert,
@@ -13,7 +10,7 @@ import {
 } from "../repositories/flight.repo";
 import { RequestFlight } from "../types/request.body";
 import { occurence } from "../utils/string.util";
-import { cleanAiroport } from "../utils/utils";
+import { cleanAirport } from "../utils/utils";
 import { fetchFlightInfoFr } from "../services/fr.service";
 import fetchFlightInfoFw from "../services/fw.service";
 
@@ -24,17 +21,16 @@ export async function flightEndpoint(reqFlight: RequestFlight) {
   //if flight not exist
 
   //Get IFlightAirline
-  const airlineFlightNum = await getFlightNumfromAirline(
-    reqFlight.flightNum,
-    reqFlight.airline
-  );
+  const airlineFlightNum = await getFlightNumfromAirline(reqFlight.flightNum);
 
   //Get Flight info from fr and fw
   const [resultFR, resultFW] = await Promise.all([
     fetchFlightInfoFr(airlineFlightNum),
     fetchFlightInfoFw(airlineFlightNum),
   ]);
-
+  if (!resultFR && !resultFW) {
+    console.error(`Flight info not found ${reqFlight.flightNum}`);
+  }
   //Get best result or default
   const finalFlightInfo = await getBestResult(
     reqFlight,
@@ -50,13 +46,13 @@ async function getBestResult(
   allResponse: { fr: FlightInsert | undefined; fw: FlightInsert | undefined },
   flightNum: IFlightAirline
 ): Promise<FlightInsert> {
+  const isArrival: boolean = reqFlight.typeTraffic === "Arrival";
   let finalResult = defaultFlight(reqFlight, flightNum);
   //From Airport
   let fromAirportReponse = await getAirportFromResult(
     allResponse.fr?.from_code_airport,
     allResponse.fw?.from_code_airport,
-    reqFlight.fromCodeAirport,
-    reqFlight.fromAirport
+    isArrival ? undefined : reqFlight.airport
   );
   finalResult.from_code_airport = fromAirportReponse.code;
   finalResult.from_airport = fromAirportReponse.name;
@@ -65,8 +61,7 @@ async function getBestResult(
   let toAirportReponse = await getAirportFromResult(
     allResponse.fr?.to_code_airport,
     allResponse.fw?.to_code_airport,
-    reqFlight.toCodeAirport,
-    reqFlight.toAirport
+    isArrival ? reqFlight.airport : undefined
   );
 
   finalResult.to_code_airport = toAirportReponse.code;
@@ -78,10 +73,8 @@ async function getBestResult(
     finalResult.departure_time = flightSch.departure;
     finalResult.arrival_time = flightSch.arrival;
   } else {
-    finalResult.departure_time =
-      reqFlight.typeTraffic == "Arrival" ? "" : reqFlight.heure;
-    finalResult.arrival_time =
-      reqFlight.typeTraffic == "Departure" ? "" : reqFlight.heure;
+    finalResult.departure_time = "";
+    finalResult.arrival_time = "";
   }
 
   //FlightTime
@@ -98,17 +91,18 @@ function defaultFlight(
   query: RequestFlight,
   flightNum: IFlightAirline | undefined = undefined
 ): FlightInsert {
+  const isArrival: boolean = query.typeTraffic === "Arrival";
   return {
     flight_num: flightNum?.iata ?? query.flightNum,
     flight_icao: flightNum?.icao ?? "",
     flight_time: "",
-    from_code_airport: query.fromCodeAirport ?? "",
-    from_airport: cleanAiroport(query.fromAirport),
-    to_code_airport: query.toCodeAirport ?? "",
-    to_airport: cleanAiroport(query.toAirport),
-    departure_time: query.typeTraffic === "Departure" ? query.heure : "",
-    arrival_time: query.typeTraffic === "Arrival" ? query.heure : "",
-    airline: flightNum?.airline ?? query.airline,
+    from_code_airport: isArrival ? query.airport : "",
+    from_airport: "",
+    to_code_airport: isArrival ? "" : query.airport,
+    to_airport: "",
+    departure_time: "",
+    arrival_time: "",
+    airline: flightNum?.airline ?? "",
     local_name: flightNum?.localName ?? query.flightNum,
     duration: 0,
   };
@@ -117,8 +111,7 @@ function defaultFlight(
 async function getAirportFromResult(
   codeAirportFr: string | undefined,
   codeAirportFw: string | undefined,
-  airportCodeQuery: string | undefined,
-  airportQuery: string
+  airportCodeQuery: string | undefined
 ) {
   const airportResults = [];
   if (codeAirportFr) {
@@ -136,7 +129,7 @@ async function getAirportFromResult(
     const airportDB = await findAirportByIata(airportCode);
     if (airportDB) {
       return {
-        name: cleanAiroport(airportDB.airport_name),
+        name: cleanAirport(airportDB.airport_name),
         code: airportDB.iata,
       };
     }
@@ -144,16 +137,16 @@ async function getAirportFromResult(
 
   const airportFromQuery = airportCodeQuery
     ? await findAirportByIata(airportCodeQuery)
-    : await findAirportByName(airportQuery);
+    : undefined;
   if (airportFromQuery) {
     return {
-      name: cleanAiroport(airportFromQuery.airport_name),
+      name: cleanAirport(airportFromQuery.airport_name),
       code: airportFromQuery.iata,
     };
   }
   return {
-    name: airportCodeQuery ?? "",
-    code: airportQuery,
+    name: "",
+    code: airportCodeQuery ?? "",
   };
 }
 

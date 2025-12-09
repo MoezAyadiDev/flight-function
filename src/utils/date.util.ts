@@ -96,3 +96,88 @@ export function durationToChaine(duration: number) {
     finalMinute > 9 ? finalMinute : "0" + finalMinute
   }`;
 }
+
+export function isDateValid(value: number): boolean {
+  try {
+    const str = value.toString();
+
+    // Must be exactly 8 digits
+    if (!/^\d{8}$/.test(str)) return false;
+
+    const year = parseInt(str.substring(0, 4), 10);
+    const month = parseInt(str.substring(4, 6), 10);
+    const day = parseInt(str.substring(6, 8), 10);
+
+    // Basic checks
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+
+    // Construct date object
+    const date = new Date(year, month - 1, day);
+
+    // Validate by checking that components match
+    return (
+      date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function chaineToDate(madate: string) {
+  return new Date(
+    Number(madate.substring(0, 4)),
+    Number(madate.substring(4, 6)) - 1,
+    Number(madate.substring(6))
+  );
+}
+
+export function dateToChaine(date: Date, format = "AAAA-MM-JJ") {
+  var start = new Date(date);
+  var mm = start.getMonth() + 1; // getMonth() is zero-based
+  var dd = start.getDate();
+  const joinCarac = format === "AAAA-MM-JJ" ? "-" : "";
+  return [
+    start.getFullYear(),
+    (mm > 9 ? "" : "0") + mm,
+    (dd > 9 ? "" : "0") + dd,
+  ].join(joinCarac);
+}
+
+export function chaineToTimeTav(maDate: string) {
+  const date = chaineToDateTav(maDate);
+  return dateToTime(date);
+}
+
+function chaineToDateTav(maDate: string) {
+  const datePart = maDate.split(" ")[0];
+  const timePart = maDate.split(" ")[1];
+  return new Date(
+    Number(datePart.split(".")[2]),
+    Number(datePart.split(".")[1]) - 1,
+    Number(datePart.split(".")[0]),
+    Number(timePart.split(":")[0]) + offsetHour,
+    Number(timePart.split(":")[1])
+  );
+}
+
+function dateToTime(date: Date) {
+  var hh = date.getHours();
+  var mm = date.getMinutes();
+  return [(hh > 9 ? "" : "0") + hh, (mm > 9 ? "" : "0") + mm].join(":");
+}
+
+export function dateToTimeStampMinuit(date: Date) {
+  const dateSearch = new Date(`${dateToChaine(date)}T00:00:00`);
+  return Math.round(dateSearch.getTime() / 1000);
+}
+
+export function timeStampToNumber(date1: number) {
+  return Number(timeStampToChaine(date1));
+}
+
+export function timeStampToChaine(date1: number) {
+  return dateToChaine(new Date(date1 * 1000 + offset * 60 * 1000), "AAAAMMJJ");
+}

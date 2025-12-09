@@ -1,9 +1,18 @@
 import { IFlightAirline } from "../repositories/airline.repo";
 import { awaitCall } from "../repositories/api.time.repo";
 import { FlightInsert } from "../repositories/flight.repo";
+import { TrafficInsert } from "../repositories/traffic.repo";
 import { TimeCallFailure } from "../types/failures";
-import { avgTime, timeStampToTime } from "../utils/date.util";
+import { TrafficItem } from "../types/service.type";
+import {
+  avgTime,
+  chaineToDate,
+  dateToTimeStampMinuit,
+  timeStampToNumber,
+  timeStampToTime,
+} from "../utils/date.util";
 import { encodeQuery } from "../utils/string.util";
+import { cleanAirport } from "../utils/utils";
 
 //Http get function
 async function httpGet(url: string, headers = {}) {
@@ -224,4 +233,264 @@ async function search({
     `https://www.flightradar24.com/v1/search/web/find?${urlApi}`
   );
   return await response.json();
+}
+
+export async function getTrafficFr(trafficItem: TrafficItem) {
+  const maDate = chaineToDate(trafficItem.date.toString());
+  let page = 1;
+  const detailArrival = await traficCall(
+    trafficItem.codeAirport,
+    maDate,
+    page,
+    trafficItem.typeTrafic === "Arrival" ? "arrivals" : "departures"
+  );
+  if (detailArrival.totalPage === 0) {
+    return [];
+  }
+  const totalPage = detailArrival.totalPage;
+  let arrivalList: TrafficInsert[] = detailArrival.flights.filter(
+    (item: TrafficInsert) =>
+      trafficItem.typeTrafic === "Arrival"
+        ? item.arrival_date === trafficItem.date
+        : item.departure_date === trafficItem.date
+  );
+  if (totalPage != page) {
+    for (var i = 1; i <= totalPage; i++) {
+      page++;
+      const detailArrivalPage = await traficCall(
+        trafficItem.codeAirport,
+        maDate,
+        page,
+        trafficItem.typeTrafic === "Arrival" ? "arrivals" : "departures"
+      );
+      if (detailArrivalPage) {
+        arrivalList.push(
+          ...detailArrivalPage.flights.filter((item: any) =>
+            trafficItem.typeTrafic === "Arrival"
+              ? item.arrivalDate === trafficItem.date
+              : item.departureDate === trafficItem.date
+          )
+        );
+      }
+    }
+  }
+  return arrivalList;
+}
+
+async function traficCall(
+  airport: string,
+  date: Date,
+  page: number,
+  typeTrafic: "arrivals" | "departures"
+): Promise<{ totalPage: number; flights: TrafficInsert[] }> {
+  await awaitCall();
+  const dateSearch = dateToTimeStampMinuit(date);
+  let queryApi = `code=${airport}`;
+
+  // queryApi += `&plugin[]=schedule`;
+  queryApi += `&plugin[]=`;
+  queryApi += `&plugin-setting[schedule][mode]=${typeTrafic}`;
+  queryApi += `&plugin-setting[schedule][timestamp]=${dateSearch}`;
+  queryApi += `&limit=100`;
+  queryApi += `&page=${page}`;
+  const url = `https://api.flightradar24.com/common/v1/airport.json?${queryApi}`;
+  const response = await fetch(url);
+  const jsonResponse = await response.json();
+  if (jsonResponse.errors) {
+    return {
+      totalPage: 0,
+      flights: [],
+    };
+  }
+  if (typeTrafic === "arrivals") {
+    const detailArrival = jsonResponse.result.response.airport.pluginData;
+    if (!detailArrival.schedule) return { totalPage: 0, flights: [] };
+    return {
+      totalPage: detailArrival.schedule.arrivals.page.total,
+      flights: mouvementToTrafic(
+        detailArrival,
+        undefined,
+        detailArrival.details
+      ),
+    };
+  } else {
+    const detailDeparture = jsonResponse.result.response.airport.pluginData;
+    if (!detailDeparture.schedule) return { totalPage: 0, flights: [] };
+    return {
+      totalPage: detailDeparture.schedule.departures.page.total,
+      flights: mouvementToTrafic(
+        undefined,
+        detailDeparture,
+        detailDeparture.details
+      ),
+    };
+  }
+}
+
+function mouvementToTrafic(
+  detailArrival: IFRArrivalResponse | undefined,
+  detailDeparture: IFRDepartureResponse | undefined,
+  airport: any
+): TrafficInsert[] {
+  if (detailArrival) {
+    return detailArrival.schedule.arrivals.data.map((item: any) => ({
+      departure_date: timeStampToNumber(item.flight.time.scheduled.departure),
+      arrival_date: timeStampToNumber(item.flight.time.scheduled.arrival),
+      flight_num: item.flight.identification.number.default,
+      from_code_airport: item.flight.airport.origin.code.iata,
+      from_airport: cleanAirport(item.flight.airport.origin.name),
+      to_code_airport: airport.code.iata,
+      to_airport: cleanAirport(airport.name),
+      sch_arrival_time: timeStampToTime(item.flight.time.scheduled.arrival),
+      sch_departure_time: timeStampToTime(item.flight.time.scheduled.departure),
+      act_arrival_time: "",
+      act_departure_time: "",
+      est_arrival_time: "",
+      est_departure_time: "",
+      flight_status: "Scheduled",
+      fr_num:
+        item.flight.identification.number.alternative ??
+        item.flight.identification.callsign,
+      flight_id: 0,
+    }));
+  } else {
+    return detailDeparture!.schedule.departures.data.map((item: any) => ({
+      departure_date: timeStampToNumber(item.flight.time.scheduled.departure),
+      arrival_date: timeStampToNumber(item.flight.time.scheduled.arrival),
+      flight_num: item.flight.identification.number.default,
+      from_code_airport: airport.code.iata,
+      from_airport: cleanAirport(airport.name),
+      to_code_airport: item.flight.airport.destination.code.iata,
+      to_airport: cleanAirport(item.flight.airport.destination.name),
+      sch_departure_time: timeStampToTime(item.flight.time.scheduled.departure),
+      sch_arrival_time: timeStampToTime(item.flight.time.scheduled.arrival),
+      act_departure_time: "",
+      act_arrival_time: "",
+      est_departure_time: "",
+      est_arrival_time: "",
+      flight_id: 0,
+      flight_status: "Scheduled",
+      fr_num:
+        item.flight.identification.number.alternative ??
+        item.flight.identification.callsign,
+    }));
+  }
+}
+
+interface IFRArrivalResponse {
+  details: {
+    name: string;
+    code: {
+      iata: string;
+      icao: string;
+    };
+  };
+  schedule: {
+    arrivals: {
+      page: {
+        current: number;
+        total: number;
+      };
+      data: {
+        flight: {
+          identification: {
+            number: {
+              default: string;
+              alternative: string | undefined;
+            };
+            callsign: string;
+          };
+          airport: {
+            origin: {
+              code: {
+                iata: string;
+                icao: string;
+              };
+              name: string;
+            };
+          };
+          time: {
+            scheduled: {
+              departure: number;
+              arrival: number;
+            };
+            real: {
+              departure: number;
+              arrival: number;
+            };
+            estimated: {
+              departure: number | undefined;
+              arrival: number | undefined;
+            };
+          };
+          airline: {
+            name: string;
+            code: {
+              iata: string;
+              icao: string;
+            };
+          };
+        };
+      }[];
+    };
+  };
+}
+
+interface IFRDepartureResponse {
+  details: {
+    name: string;
+    code: {
+      iata: string;
+      icao: string;
+    };
+  };
+  schedule: {
+    departures: {
+      page: {
+        current: number;
+        total: number;
+      };
+      data: {
+        flight: {
+          identification: {
+            number: {
+              default: "BJ509";
+              alternative: null;
+            };
+            callsign: "LBT509";
+          };
+          airport: {
+            destination: {
+              code: {
+                iata: "CDG";
+                icao: "LFPG";
+              };
+              name: "Paris Charles de Gaulle Airport";
+            };
+          };
+          time: {
+            scheduled: {
+              departure: number;
+              arrival: number;
+            };
+            real: {
+              departure: number;
+              arrival: number;
+            };
+            estimated: {
+              departure: number | undefined;
+              arrival: number | undefined;
+            };
+          };
+          airline: {
+            name: string;
+            code: {
+              iata: string;
+              icao: string;
+            };
+          };
+        };
+      }[];
+    };
+  };
 }

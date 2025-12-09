@@ -236,6 +236,7 @@ export type Database = {
           airport: string;
           date_traffic: number;
           flight_num: string;
+          flight_icao: string;
           subscription_status: number;
           trafic_id: number;
           type_traffic: Database["public"]["Enums"]["traffic_type"];
@@ -246,6 +247,7 @@ export type Database = {
           airport: string;
           date_traffic: number;
           flight_num: string;
+          flight_icao: string;
           subscription_status: number;
           trafic_id: number;
           type_traffic: Database["public"]["Enums"]["traffic_type"];
@@ -256,6 +258,7 @@ export type Database = {
           created_at?: string;
           date_traffic?: number;
           flight_num?: string | null;
+          flight_icao?: string | null;
           id?: number;
           subscription_status?: number;
           trafic_id?: number;
