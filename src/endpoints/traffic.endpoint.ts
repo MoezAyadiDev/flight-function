@@ -9,6 +9,7 @@ import {
   Traffic,
   TrafficInsert,
 } from "../repositories/traffic.repo";
+import { insertUnknownFlight } from "../repositories/unknown_flight.repo";
 import { getAeroportTrafic } from "../services/aeroport.service";
 import { getTrafficFr } from "../services/fr.service";
 import { InsertFailure } from "../types/failures";
@@ -18,6 +19,7 @@ import { onlyUnique } from "../utils/utils";
 import { flightEndpoint } from "./flight.endpoint";
 
 export async function trafficEndpoint(traficsSubscribe: RequestTraffic[]) {
+  const flightNotFound: string[] = [];
   //Get unique airport type traffic
   const traficUnique = traficsSubscribe
     .map<TrafficItem>((item) => ({
@@ -58,7 +60,17 @@ export async function trafficEndpoint(traficsSubscribe: RequestTraffic[]) {
           traficAirport,
           traficFR
         );
-        trafficsToInsert.push(tarfficToInsert);
+        if (tarfficToInsert) {
+          trafficsToInsert.push(tarfficToInsert);
+        } else {
+          await insertUnknownFlight({
+            airport: traffic.airport,
+            date_traffic: traffic.flightDate,
+            flight_num: traffic.flightNum,
+            type_traffic: traffic.typeTraffic,
+          });
+          flightNotFound.push(traffic.flightNum);
+        }
       }
     }
   }
@@ -78,10 +90,23 @@ export async function trafficEndpoint(traficsSubscribe: RequestTraffic[]) {
     }
     if (subsToInsert.length > 0) {
       const responseSubInsert = await insertSubscriptions(subsToInsert);
+      if (flightNotFound.length > 0) {
+        return {
+          Status: true,
+          flightNotFound: flightNotFound,
+        };
+      }
       return { Status: responseSubInsert };
     } else {
       throw new InsertFailure("Subscriptons");
     }
+  }
+  if (flightNotFound.length > 0) {
+    return {
+      Status: true,
+      message: "All traffic already exist",
+      flightNotFound: flightNotFound,
+    };
   }
   return { Status: true, message: "All traffic already exist" };
   //   Flight info not found EZY6331
@@ -92,8 +117,9 @@ async function getTraffic(
   requestTraffic: RequestTraffic,
   traficAirport: TrafficAirport[],
   traficFR: TrafficInsert[]
-): Promise<TrafficInsert> {
+): Promise<TrafficInsert | undefined> {
   const flight = await flightEndpoint(requestTraffic);
+  if (!flight) return undefined;
   const flightValues = [
     flight.flight_num,
     flight.flight_icao,
@@ -210,3 +236,5 @@ function matTrafficToSubscription(
     type_traffic: requestTraffic.typeTraffic,
   };
 }
+
+//Flight info not found BJ640X

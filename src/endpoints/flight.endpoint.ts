@@ -33,6 +33,7 @@ export async function flightEndpoint(reqFlight: RequestFlight) {
 
   if (!resultFR && !resultFW && !resultAi) {
     console.error(`Flight info not found ${reqFlight.flightNum}`);
+    return undefined;
   }
   //Get best result or default
   const finalFlightInfo = await getBestResult(

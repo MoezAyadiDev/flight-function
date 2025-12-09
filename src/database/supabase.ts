@@ -389,6 +389,33 @@ export type Database = {
           }
         ];
       };
+      UnknownFlight: {
+        Row: {
+          id: number;
+          flight_num: string;
+          date_traffic: number;
+          type_traffic: Database["public"]["Enums"]["traffic_type"];
+          airport: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          flight_num: string;
+          date_traffic: number;
+          type_traffic: Database["public"]["Enums"]["traffic_type"];
+          airport: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          flight_num?: string;
+          date_traffic?: number;
+          type_traffic?: Database["public"]["Enums"]["traffic_type"];
+          airport?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

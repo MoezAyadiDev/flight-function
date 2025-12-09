@@ -37,7 +37,7 @@ async function setConfig() {
   }
 }
 
-export async function awaitCall(timeDelay = 3) {
+export async function awaitCall(timeDelay = 4) {
   const lastTimeCall = await getConfig();
   const secondeDifference = timeStampDifferenceNow(lastTimeCall);
   if (secondeDifference < timeDelay) {
