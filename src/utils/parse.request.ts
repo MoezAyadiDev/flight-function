@@ -80,6 +80,13 @@ function parseTraffic(trafficItem: any): RequestTraffic {
     throw new QueryItemFailure("airport", trafficItem.flightNum);
   }
 
+  if (!trafficItem.idCentre) {
+    throw new QueryItemFailure("idCentre", trafficItem.flightNum);
+  }
+  if (isNaN(Number(trafficItem.idCentre))) {
+    throw new QueryTypeItemFailure("idCentre", "Number", trafficItem.flightNum);
+  }
+
   return trafficItem;
 }
 
@@ -96,4 +103,9 @@ export function parseTraffics(req: any) {
   }
 
   return listBody;
+}
+
+export function parseTracks(req: any) {
+  autorizationMiddleware(req.headers);
+  methodeMiddleware(req.method);
 }

@@ -134,6 +134,17 @@ export function chaineToDate(madate: string) {
   );
 }
 
+export function chaineToDateOffset(madate: string) {
+  return new Date(
+    Number(madate.substring(0, 4)),
+    Number(madate.substring(4, 6)) - 1,
+    Number(madate.substring(6)),
+    1,
+    0,
+    0
+  );
+}
+
 export function dateToChaine(date: Date, format = "AAAA-MM-JJ") {
   var start = new Date(date);
   var mm = start.getMonth() + 1; // getMonth() is zero-based
@@ -144,6 +155,13 @@ export function dateToChaine(date: Date, format = "AAAA-MM-JJ") {
     (mm > 9 ? "" : "0") + mm,
     (dd > 9 ? "" : "0") + dd,
   ].join(joinCarac);
+}
+
+export function dateToNumber(date: Date): number {
+  const y = date.getUTCFullYear();
+  const m = date.getUTCMonth() + 1;
+  const d = date.getUTCDate();
+  return y * 10000 + m * 100 + d;
 }
 
 export function chaineToTimeTav(maDate: string) {
@@ -170,7 +188,7 @@ function dateToTime(date: Date) {
 }
 
 export function dateToTimeStampMinuit(date: Date) {
-  const dateSearch = new Date(`${dateToChaine(date)}T00:00:00`);
+  const dateSearch = new Date(`${dateToChaine(date)}T01:00:00`);
   return Math.round(dateSearch.getTime() / 1000);
 }
 
@@ -180,4 +198,34 @@ export function timeStampToNumber(date1: number) {
 
 export function timeStampToChaine(date1: number) {
   return dateToChaine(new Date(date1 * 1000 + offset * 60 * 1000), "AAAAMMJJ");
+}
+
+export function timeStampNow() {
+  return dateToTimeStamp(dateNow());
+}
+
+export function timeToNumber(time: string) {
+  var tt = Number(time.split(":")[0]) * 60;
+  tt += Number(time.split(":")[1]);
+  return tt;
+}
+
+export function timeCompareNow(time: string) {
+  const now = dateNow();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  return nowMinutes - timeToNumber(time);
+}
+
+export function dateDifferenceDayNow(date1: Date) {
+  let date2 = dateNow();
+  let Difference_In_Time = date2.getTime() - date1.getTime();
+  let Difference_In_Days = Math.round(Difference_In_Time / (1000 * 3600 * 24));
+  return Difference_In_Days;
+}
+
+export function dateDifferenceNow(date1: Date) {
+  let date2 = dateNow();
+  let Difference_In_Time = date2.getTime() - date1.getTime();
+  let Difference_In_Days = Math.floor(Difference_In_Time / (1000 * 3600 * 24));
+  return Difference_In_Days;
 }

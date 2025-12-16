@@ -25,10 +25,11 @@ export async function findFlightByIdentifier(
     .from(tableName)
     .select("*")
     .or(
-      `flight_num.eq.${numFlight},flight_icao.eq.${numFlight},local_name.eq.${numFlight}`
+      `flight_num.eq.${numFlight}, flight_icao.eq.${numFlight}, local_name.cs.{${numFlight}}`
     )
     .limit(1)
     .maybeSingle();
+
   if (error) throw new Error(error.message);
   return data;
 }

@@ -31,6 +31,22 @@ export async function findAirlinesByIcao(icao: string): Promise<Airline[]> {
 }
 
 //Find Airline by iata
+export async function findAirlineByIataIcao(
+  iata: string,
+  icao: string
+): Promise<Airline | undefined> {
+  const { data, error } = await db
+    .from(tableName)
+    .select("*")
+    .eq("code", iata)
+    .eq("icao", icao)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return undefined;
+  return data;
+}
+
+//Find Airline by iata and Icao
 export async function findAirlinesByIata(iata: string): Promise<Airline[]> {
   const { data, error } = await db.from(tableName).select("*").eq("code", iata);
   if (error) throw new Error(error.message);
@@ -49,12 +65,21 @@ export async function getFlightNumfromAirline(
   if (correctFlightNum.substring(0, 2) === "TU") {
     correctFlightNum = `TU${Number(correctFlightNum.replaceAll("TU", ""))}`;
   }
+  let alternative = undefined;
+  if (correctFlightNum.substring(0, 3) === "EZS") {
+    alternative = `U2${Number(correctFlightNum.replaceAll("EZS", ""))}`;
+  }
+
   let flightIata = "";
   let flightIcao = "";
   let airline = "";
   const regex = /^[a-zA-Z]+$/;
   // Check if iata or icao
   if (!regex.test(correctFlightNum.substring(0, 3))) {
+    const airl = correctFlightNum.substring(0, 2);
+    correctFlightNum = `${airl}${Number(
+      correctFlightNum.replaceAll(airl, "")
+    )}`;
     const airlineCode = correctFlightNum.substring(0, 2);
     const airlines = await findAirlinesByIata(airlineCode);
     if (airlines.length === 1) {
@@ -85,6 +110,11 @@ export async function getFlightNumfromAirline(
       return defaultFlightNumFromAirline(flightSearch);
     }
   } else {
+    const airl = correctFlightNum.substring(0, 3);
+    correctFlightNum = `${airl}${Number(
+      correctFlightNum.replaceAll(airl, "")
+    )}`;
+
     const airlineIcao = correctFlightNum.substring(0, 3);
     const airlines = await findAirlinesByIcao(airlineIcao);
     if (airlines.length === 1) {
@@ -128,6 +158,7 @@ export async function getFlightNumfromAirline(
     iata: flightIata,
     icao: flightIcao,
     localName: flightSearch,
+    alternative: alternative,
   };
 }
 
@@ -136,6 +167,7 @@ export interface IFlightAirline {
   iata: string | undefined;
   icao: string | undefined;
   localName: string;
+  alternative: string | undefined;
 }
 
 function defaultFlightNumFromAirline(flightSearch: string): IFlightAirline {
@@ -144,5 +176,6 @@ function defaultFlightNumFromAirline(flightSearch: string): IFlightAirline {
     iata: undefined,
     icao: undefined,
     localName: flightSearch,
+    alternative: undefined,
   };
 }

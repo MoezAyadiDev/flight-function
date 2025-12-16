@@ -101,3 +101,13 @@ export class InsertFailure extends Failures {
     );
   }
 }
+
+export class SearchFailure extends Failures {
+  constructor(text: string) {
+    super(
+      400,
+      "SEARCH_FAILURE",
+      `Unable to find ${text}. Invalid or missing data.`
+    );
+  }
+}

@@ -1,7 +1,10 @@
 import { IFlightAirline } from "../repositories/airline.repo";
+import { IFlightService } from "../types/service.type";
 import { durationToChaine } from "../utils/date.util";
 
-export async function fetchFlightInfoAi(airlineFlightNum: IFlightAirline) {
+export async function fetchFlightInfoAi(
+  airlineFlightNum: IFlightAirline
+): Promise<IFlightService | undefined> {
   try {
     const response = await fetch(
       `https://airportinfo.live/fr/vol/${
@@ -26,17 +29,18 @@ export async function fetchFlightInfoAi(airlineFlightNum: IFlightAirline) {
       Number(depTime.split(":")[1]) * 60;
     const flt = durationToChaine(duration);
     return {
-      flight_num: airlineFlightNum.iata ?? "",
+      flight_num: myFlight.flightNumber,
       flight_icao: airlineFlightNum.icao ?? "",
       flight_time: flt,
       from_code_airport: myFlight.departureAirport.iataCode,
-      from_airport: myFlight.departureAirport.name,
       to_code_airport: myFlight.arrivalAirport.iataCode,
-      to_airport: myFlight.arrivalAirport.name,
       departure_time: depTime,
       arrival_time: arrTime,
-      airline: airlineFlightNum.airline ?? "",
-      local_name: airlineFlightNum.localName,
+      airline: {
+        name: myFlight.provider.name,
+        iata: myFlight.provider.iataCode,
+        icao: "",
+      },
       duration: duration,
     };
   } catch (ex) {
@@ -46,8 +50,10 @@ export async function fetchFlightInfoAi(airlineFlightNum: IFlightAirline) {
 }
 
 interface AiFlight {
+  flightNumber: string;
   provider: {
     name: string; //Airline name
+    iataCode: string;
   };
   departureAirport: {
     name: string; //Airport name

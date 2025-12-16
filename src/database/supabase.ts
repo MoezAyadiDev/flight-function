@@ -42,39 +42,39 @@ export type Database = {
       Aeroport: {
         Row: {
           id: number;
-          nom: string;
+          api_url: string;
           code: string;
           icao: string;
-          api_url: string;
+          nom: string;
           operateur: Database["public"]["Enums"]["operator"] | null;
           created_at: string;
         };
         Insert: {
           id?: number;
-          nom: string;
+          api_url: string;
           code: string;
           icao: string;
-          api_url: string;
+          nom: string;
           operateur: Database["public"]["Enums"]["operator"] | null;
           created_at?: string;
         };
         Update: {
-          api_url?: string | null;
-          code?: string | null;
-          created_at?: string;
-          icao?: string | null;
           id?: number;
-          nom?: string | null;
+          api_url?: string;
+          code?: string;
+          icao?: string;
+          nom?: string;
           operateur?: Database["public"]["Enums"]["operator"] | null;
+          created_at?: string;
         };
         Relationships: [];
       };
       Airline: {
         Row: {
           id: number;
-          airline_name: string;
           code: string;
           icao: string;
+          airline_name: string;
           created_at: string;
         };
         Insert: {
@@ -86,9 +86,9 @@ export type Database = {
         };
         Update: {
           id?: number;
-          airline_name?: string | null;
-          code?: string | null;
-          icao?: string | null;
+          airline_name?: string;
+          code?: string;
+          icao?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -96,36 +96,36 @@ export type Database = {
       Airport: {
         Row: {
           id: number;
-          airport_name: string;
-          alt: number;
-          country: string;
           iata: string;
           icao: string;
-          lat: number;
-          lon: number;
+          airport_name: string;
+          country: string;
+          alt: number | null;
+          lon: number | null;
+          lat: number | null;
           created_at: string;
         };
         Insert: {
           id?: number;
-          airport_name: string;
-          alt: number;
-          country: string;
           iata: string;
           icao: string;
-          lat: number;
-          lon: number;
+          country: string;
+          airport_name: string;
+          alt?: number | null;
+          lat?: number | null;
+          lon?: number | null;
           created_at?: string;
         };
         Update: {
-          airport_name?: string | null;
-          alt?: number | null;
-          country?: string | null;
-          created_at?: string;
-          iata?: string | null;
-          icao?: string | null;
           id?: number;
+          airport_name?: string;
+          alt?: number | null;
+          country?: string;
+          iata?: string;
+          icao?: string;
           lat?: number | null;
           lon?: number | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -136,67 +136,83 @@ export type Database = {
           created_at: string;
         };
         Insert: {
-          created_at?: string;
           id?: number;
           info_time: number;
+          created_at?: string;
         };
         Update: {
-          created_at?: string;
           id?: number;
           info_time?: number;
+          created_at?: string;
         };
         Relationships: [];
       };
       Flight: {
         Row: {
           id: number;
-          flight_num: string;
-          flight_icao: string;
-          flight_time: string;
-          from_code_airport: string;
-          from_airport: string;
-          to_code_airport: string;
-          to_airport: string;
-          departure_time: string;
+          airline_id: number;
           arrival_time: string;
-          airline: string;
-          duration: number;
-          local_name: string;
+          departure_time: string;
+          duration: number | null;
+          flight_icao: string;
+          flight_num: string;
+          flight_time: string;
+          from_airport: number;
+          local_name: string[];
+          to_airport: number;
           created_at: string;
         };
         Insert: {
           id?: number;
-          flight_num: string;
-          flight_icao: string;
-          flight_time: string;
-          from_code_airport: string;
-          from_airport: string;
-          to_code_airport: string;
-          to_airport: string;
-          departure_time: string;
+          airline_id: number;
           arrival_time: string;
-          airline: string;
-          duration: number;
-          local_name: string;
+          departure_time: string;
+          duration?: number | null;
+          flight_icao: string;
+          flight_num: string;
+          flight_time: string;
+          from_airport: number;
+          local_name: string[];
+          to_airport: number;
           created_at?: string;
         };
         Update: {
-          airline?: string | null;
-          arrival_time?: string | null;
-          created_at?: string;
-          departure_time?: string | null;
-          duration?: number | null;
-          flight_icao?: string | null;
-          flight_num?: string | null;
-          flight_time?: string | null;
-          from_airport?: string | null;
-          from_code_airport?: string | null;
           id?: number;
-          local_name?: string | null;
-          to_airport?: string | null;
-          to_code_airport?: string | null;
+          airline_id?: number;
+          arrival_time?: string;
+          departure_time?: string;
+          duration?: number | null;
+          flight_icao?: string;
+          flight_num?: string;
+          flight_time?: string;
+          from_airport?: number;
+          local_name?: string[];
+          to_airport?: number;
+          created_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "flight_airline_id_fkey";
+            columns: ["airline_id"];
+            isOneToOne: false;
+            referencedRelation: "Airline";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flight_airport_from_id_fkey";
+            columns: ["from_airport"];
+            isOneToOne: false;
+            referencedRelation: "Airport";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flight_airport_to_id_fkey";
+            columns: ["to_airport"];
+            isOneToOne: false;
+            referencedRelation: "Airport";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       Observation: {
         Row: {
@@ -214,11 +230,11 @@ export type Database = {
           created_at?: string;
         };
         Update: {
-          created_at?: string;
           id?: number;
-          observation?: string | null;
-          provenance?: string | null;
+          observation?: string;
+          provenance?: string;
           trafic_id?: number;
+          created_at?: string;
         };
         Relationships: [
           {
@@ -230,83 +246,39 @@ export type Database = {
           }
         ];
       };
-      Subscription: {
-        Row: {
-          id: number;
-          airport: string;
-          date_traffic: number;
-          flight_num: string;
-          flight_icao: string;
-          subscription_status: number;
-          trafic_id: number;
-          type_traffic: Database["public"]["Enums"]["traffic_type"];
-          created_at: string;
-        };
-        Insert: {
-          id?: number;
-          airport: string;
-          date_traffic: number;
-          flight_num: string;
-          flight_icao: string;
-          subscription_status: number;
-          trafic_id: number;
-          type_traffic: Database["public"]["Enums"]["traffic_type"];
-          created_at?: string;
-        };
-        Update: {
-          airport?: string | null;
-          created_at?: string;
-          date_traffic?: number;
-          flight_num?: string | null;
-          flight_icao?: string | null;
-          id?: number;
-          subscription_status?: number;
-          trafic_id?: number;
-          type_traffic?: Database["public"]["Enums"]["traffic_type"];
-        };
-        Relationships: [
-          {
-            foreignKeyName: "subscription_trafic_id_fkey";
-            columns: ["trafic_id"];
-            isOneToOne: false;
-            referencedRelation: "Traffic";
-            referencedColumns: ["id"];
-          }
-        ];
-      };
       Track: {
         Row: {
           id: number;
-          alt: number;
-          lat: number;
-          lon: number;
-          speed: number;
-          time_stamp: number;
+          alt: number | null;
+          lat: number | null;
+          lon: number | null;
+          speed: number | null;
+          time_stamp: number | null;
           trafic_id: number;
-          vertical_speed: number;
+          vertical_speed: number | null;
           created_at: string;
         };
         Insert: {
           id?: number;
-          alt: number;
-          lat: number;
-          lon: number;
-          speed: number;
-          time_stamp: number;
+          alt?: number | null;
+          lat?: number | null;
+          lon?: number | null;
+          speed?: number | null;
+          time_stamp?: number | null;
           trafic_id: number;
-          vertical_speed: number;
+          vertical_speed?: number | null;
           created_at?: string;
         };
         Update: {
-          alt?: number | null;
-          created_at?: string;
           id?: number;
+          alt?: number | null;
           lat?: number | null;
           lon?: number | null;
           speed?: number | null;
           time_stamp?: number | null;
           trafic_id?: number;
           vertical_speed?: number | null;
+          created_at?: string;
         };
         Relationships: [
           {
@@ -321,63 +293,69 @@ export type Database = {
       Traffic: {
         Row: {
           id: number;
-          act_arrival_time: string;
-          act_departure_time: string;
-          arrival_date: number;
+          flight_num: string;
+          traffic_date: number;
+          traffic_airport: string;
+          id_centre: number[];
+          type_traffic: Database["public"]["Enums"]["traffic_type"];
+          local_num: string[];
+          fr_num: string;
           departure_date: number;
+          arrival_date: number;
+          traffic_diverted_to: string;
+          sch_departure_time: string;
+          sch_arrival_time: string;
           est_arrival_time: string;
           est_departure_time: string;
+          act_departure_time: string;
+          act_arrival_time: string;
+          flight_status: Database["public"]["Enums"]["flight_status"] | null;
           flight_id: number;
-          flight_num: string;
-          flight_status: Database["public"]["Enums"]["flight_status"];
-          fr_num: string;
-          from_airport: string;
-          from_code_airport: string;
-          sch_arrival_time: string;
-          sch_departure_time: string;
-          to_airport: string;
-          to_code_airport: string;
           created_at: string;
         };
         Insert: {
           id?: number;
-          act_arrival_time: string;
-          act_departure_time: string;
-          arrival_date: number;
-          departure_date: number;
-          est_arrival_time: string;
-          est_departure_time: string;
-          flight_id: number;
           flight_num: string;
-          flight_status: Database["public"]["Enums"]["flight_status"];
+          traffic_date: number;
+          traffic_airport: string;
+          id_centre: number[];
+          type_traffic?: Database["public"]["Enums"]["traffic_type"];
+          local_num: string[];
           fr_num: string;
-          from_airport: string;
-          from_code_airport: string;
-          sch_arrival_time: string;
-          sch_departure_time: string;
-          to_airport: string;
-          to_code_airport: string;
+          departure_date?: number;
+          arrival_date?: number;
+          traffic_diverted_to?: string;
+          sch_departure_time?: string;
+          sch_arrival_time?: string;
+          est_departure_time?: string;
+          est_arrival_time?: string;
+          act_departure_time?: string;
+          act_arrival_time?: string;
+          flight_status?: Database["public"]["Enums"]["flight_status"] | null;
+          flight_id: number;
           created_at?: string;
         };
         Update: {
-          act_arrival_time?: string | null;
-          act_departure_time?: string | null;
+          act_arrival_time?: string;
+          act_departure_time?: string;
+          traffic_date?: number;
           arrival_date?: number;
           created_at?: string;
           departure_date?: number;
-          est_arrival_time?: string | null;
-          est_departure_time?: string | null;
+          est_arrival_time?: string;
+          est_departure_time?: string;
           flight_id?: number;
-          flight_num?: string | null;
+          flight_num?: string;
           flight_status?: Database["public"]["Enums"]["flight_status"] | null;
-          fr_num?: string | null;
-          from_airport?: string | null;
-          from_code_airport?: string | null;
+          fr_num?: string;
           id?: number;
-          sch_arrival_time?: string | null;
-          sch_departure_time?: string | null;
-          to_airport?: string | null;
-          to_code_airport?: string | null;
+          id_centre?: number[];
+          local_num?: string[];
+          sch_arrival_time?: string;
+          sch_departure_time?: string;
+          traffic_airport?: string;
+          traffic_diverted_to?: string;
+          type_traffic?: Database["public"]["Enums"]["traffic_type"];
         };
         Relationships: [
           {
@@ -392,27 +370,27 @@ export type Database = {
       UnknownFlight: {
         Row: {
           id: number;
+          airport: string;
           flight_num: string;
           date_traffic: number;
           type_traffic: Database["public"]["Enums"]["traffic_type"];
-          airport: string;
           created_at: string;
         };
         Insert: {
           id?: number;
-          flight_num: string;
-          date_traffic: number;
-          type_traffic: Database["public"]["Enums"]["traffic_type"];
           airport: string;
+          date_traffic?: number;
+          flight_num: string;
+          type_traffic?: Database["public"]["Enums"]["traffic_type"];
           created_at?: string;
         };
         Update: {
-          id?: number;
-          flight_num?: string;
-          date_traffic?: number;
-          type_traffic?: Database["public"]["Enums"]["traffic_type"];
           airport?: string;
           created_at?: string;
+          date_traffic?: number;
+          flight_num?: string;
+          id?: number;
+          type_traffic?: Database["public"]["Enums"]["traffic_type"];
         };
         Relationships: [];
       };
@@ -424,7 +402,7 @@ export type Database = {
       [_ in never]: never;
     };
     Enums: {
-      flight_status: "Scheduled" | "onAir" | "Landed";
+      flight_status: "Scheduled" | "onAir" | "Landed" | "Canceled";
       operator: "OACA" | "TAV";
       traffic_type: "Arrival" | "Departure";
     };
@@ -560,7 +538,7 @@ export const Constants = {
   },
   public: {
     Enums: {
-      flight_status: ["Scheduled", "onAir", "Landed"],
+      flight_status: ["Scheduled", "onAir", "Landed", "Canceled"],
       operator: ["OACA", "TAV"],
       traffic_type: ["Arrival", "Departure"],
     },

@@ -47,7 +47,10 @@ export async function findAirportByIcao(icao: string): Promise<Airport | null> {
     .select("*")
     .eq("icao", icao)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.log(`Error findAirportByIata ${icao}`);
+    throw new Error(error.message);
+  }
   return data;
 }
 
@@ -58,7 +61,10 @@ export async function findAirportByIata(iata: string): Promise<Airport | null> {
     .select("*")
     .eq("iata", iata)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.log(`Error findAirportByIata ${iata}`);
+    throw new Error(error.message);
+  }
   return data;
 }
 
@@ -71,6 +77,9 @@ export async function findAirportByName(
     .select("*")
     .like("airport_name", `%${airportName}%`)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.log(`Error findAirportByName ${airportName}`);
+    throw new Error(error.message);
+  }
   return data;
 }

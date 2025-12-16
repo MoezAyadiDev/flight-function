@@ -1,4 +1,6 @@
 import {
+  findAirlineByIataIcao,
+  findAirlinesByIata,
   getFlightNumfromAirline,
   IFlightAirline,
 } from "../repositories/airline.repo";
@@ -10,20 +12,19 @@ import {
 } from "../repositories/flight.repo";
 import { RequestFlight } from "../types/request.body";
 import { occurence } from "../utils/string.util";
-import { cleanAirport } from "../utils/utils";
 import { fetchFlightInfoFr } from "../services/fr.service";
 import fetchFlightInfoFw from "../services/fw.service";
 import { fetchFlightInfoAi } from "../services/ai.service";
+import { IFlightService } from "../types/service.type";
+import { SearchFailure } from "../types/failures";
 
 export async function flightEndpoint(reqFlight: RequestFlight) {
   //Get flight from database
   const flight = await findFlightByIdentifier(reqFlight.flightNum);
   if (flight) return flight;
   //if flight not exist
-
   //Get IFlightAirline
   const airlineFlightNum = await getFlightNumfromAirline(reqFlight.flightNum);
-
   //Get Flight info from fr and fw
   const [resultFR, resultFW, resultAi] = await Promise.all([
     fetchFlightInfoFr(airlineFlightNum),
@@ -41,21 +42,30 @@ export async function flightEndpoint(reqFlight: RequestFlight) {
     { fr: resultFR, fw: resultFW, ai: resultAi },
     airlineFlightNum
   );
-
+  if (!finalFlightInfo) return undefined;
   return await insertFlight(finalFlightInfo);
 }
 
 async function getBestResult(
   reqFlight: RequestFlight,
   allResponse: {
-    fr: FlightInsert | undefined;
-    fw: FlightInsert | undefined;
-    ai: FlightInsert | undefined;
+    fr: IFlightService | undefined;
+    fw: IFlightService | undefined;
+    ai: IFlightService | undefined;
   },
   flightNum: IFlightAirline
-): Promise<FlightInsert> {
+): Promise<FlightInsert | undefined> {
+  //TDOO search airline
   const isArrival: boolean = reqFlight.typeTraffic === "Arrival";
   let finalResult = defaultFlight(reqFlight, flightNum);
+  if (allResponse.fr) {
+    if (
+      reqFlight.flightNum.substring(0, 3) === "EZS" &&
+      allResponse.fr.flight_num.substring(0, 2)
+    ) {
+      finalResult.flight_num = allResponse.fr.flight_num;
+    }
+  }
   //From Airport
   let fromAirportReponse = await getAirportFromResult(
     allResponse.fr?.from_code_airport,
@@ -63,8 +73,12 @@ async function getBestResult(
     allResponse.ai?.from_code_airport,
     isArrival ? undefined : reqFlight.airport
   );
-  finalResult.from_code_airport = fromAirportReponse.code;
-  finalResult.from_airport = fromAirportReponse.name;
+
+  if (!fromAirportReponse) {
+    return undefined;
+    throw new SearchFailure(`From airport : ${flightNum.localName}`);
+  }
+  finalResult.from_airport = fromAirportReponse;
 
   //To Airport
   let toAirportReponse = await getAirportFromResult(
@@ -73,9 +87,8 @@ async function getBestResult(
     allResponse.ai?.to_code_airport,
     isArrival ? reqFlight.airport : undefined
   );
-
-  finalResult.to_code_airport = toAirportReponse.code;
-  finalResult.to_airport = toAirportReponse.name;
+  if (!toAirportReponse) throw new SearchFailure(`To airport : ${flightNum}`);
+  finalResult.to_airport = toAirportReponse; //toAirportReponse.name;
 
   //FlightSchedule
   const flightSch = getFlightSchedule(allResponse);
@@ -94,6 +107,15 @@ async function getBestResult(
     finalResult.duration = flightTimeReal.duration;
   }
 
+  //Airline
+  const airlineReal = await getAirlineFromResult(
+    allResponse.fr?.airline,
+    allResponse.fw?.airline,
+    allResponse.ai?.airline
+  );
+  if (!airlineReal) throw new SearchFailure(`Airline : ${flightNum}`);
+  finalResult.airline_id = airlineReal.id;
+
   return finalResult;
 }
 
@@ -106,15 +128,13 @@ function defaultFlight(
     flight_num: flightNum?.iata ?? query.flightNum,
     flight_icao: flightNum?.icao ?? "",
     flight_time: "",
-    from_code_airport: isArrival ? query.airport : "",
-    from_airport: "",
-    to_code_airport: isArrival ? "" : query.airport,
-    to_airport: "",
+    from_airport: 0,
+    to_airport: 0,
     departure_time: "",
     arrival_time: "",
-    airline: flightNum?.airline ?? "",
-    local_name: flightNum?.localName ?? query.flightNum,
+    airline_id: 0, //flightNum?.airline ?? "",
     duration: 0,
+    local_name: [query.flightNum],
   };
 }
 
@@ -142,10 +162,7 @@ async function getAirportFromResult(
         : (realAirport.key as string);
     const airportDB = await findAirportByIata(airportCode);
     if (airportDB) {
-      return {
-        name: cleanAirport(airportDB.airport_name),
-        code: airportDB.iata,
-      };
+      return airportDB.id;
     }
   }
 
@@ -153,21 +170,52 @@ async function getAirportFromResult(
     ? await findAirportByIata(airportCodeQuery)
     : undefined;
   if (airportFromQuery) {
-    return {
-      name: cleanAirport(airportFromQuery.airport_name),
-      code: airportFromQuery.iata,
-    };
+    airportFromQuery.id;
   }
-  return {
-    name: "",
-    code: airportCodeQuery ?? "",
-  };
+  return undefined;
+}
+
+async function getAirlineFromResult(
+  airlineFr:
+    | {
+        name: string;
+        iata: string;
+        icao: string;
+      }
+    | undefined,
+  airlineFw:
+    | {
+        name: string;
+        iata: string;
+        icao: string;
+      }
+    | undefined,
+  airlineAi:
+    | {
+        name: string;
+        iata: string;
+        icao: string;
+      }
+    | undefined
+) {
+  if (airlineFr) {
+    return await findAirlineByIataIcao(airlineFr.iata, airlineFr.icao);
+  }
+
+  if (airlineFw) {
+    return await findAirlineByIataIcao(airlineFw.iata, airlineFw.icao);
+  }
+  if (airlineAi) {
+    const airls = await findAirlinesByIata(airlineAi.iata);
+    if (airls.length > 0) return airls[0];
+  }
+  return undefined;
 }
 
 function getFlightSchedule(thirdParty: {
-  fr: FlightInsert | undefined;
-  fw: FlightInsert | undefined;
-  ai: FlightInsert | undefined;
+  fr: IFlightService | undefined;
+  fw: IFlightService | undefined;
+  ai: IFlightService | undefined;
 }) {
   let departureList = [];
   if (thirdParty.fr) {
@@ -202,9 +250,9 @@ function getFlightSchedule(thirdParty: {
 }
 
 function getFlightTime(thirdParty: {
-  fr: FlightInsert | undefined;
-  fw: FlightInsert | undefined;
-  ai: FlightInsert | undefined;
+  fr: IFlightService | undefined;
+  fw: IFlightService | undefined;
+  ai: IFlightService | undefined;
 }) {
   let timeList = [];
   if (thirdParty.fr) {
@@ -226,11 +274,11 @@ function getFlightTime(thirdParty: {
 
     let duration = 0;
     if (thirdParty.fr && thirdParty.fr.flight_time === flightTime) {
-      duration = thirdParty.fr.duration;
+      duration = thirdParty.fr.duration ?? 0;
     } else if (thirdParty.fw && thirdParty.fw.flight_time === flightTime) {
-      duration = thirdParty.fw.duration;
+      duration = thirdParty.fw.duration ?? 0;
     } else if (thirdParty.ai && thirdParty.ai.flight_time === flightTime) {
-      duration = thirdParty.ai.duration;
+      duration = thirdParty.ai.duration ?? 0;
     } else {
       return undefined;
     }
