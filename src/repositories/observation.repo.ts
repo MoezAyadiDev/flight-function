@@ -27,3 +27,13 @@ export async function insertObservations(
   if (error) throw new Error(error.message);
   return data;
 }
+
+export async function findObserByIdTraf(ids: number[]): Promise<Observation[]> {
+  const { data, error } = await db
+    .from(tableName)
+    .select("*")
+    .in("trafic_id", ids);
+  if (error) throw new Error(error.message);
+  if (!data) return [];
+  return data;
+}

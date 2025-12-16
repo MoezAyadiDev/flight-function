@@ -4,7 +4,12 @@ import { AirportInsert } from "../repositories/airport.repo";
 import { awaitCall } from "../repositories/api.time.repo";
 import { Traffic, TrafficInsert } from "../repositories/traffic.repo";
 import { TimeCallFailure } from "../types/failures";
-import { IFlightService, ITrafficFr, TrafficItem } from "../types/service.type";
+import {
+  IFlightService,
+  ITrafficFr,
+  TrafficItem,
+  TrafficItemShort,
+} from "../types/service.type";
 // import {
 //   avgTime,
 //   chaineToDate,
@@ -318,9 +323,15 @@ async function traficCall(
   airport: string,
   date: Date,
   page: number,
-  typeTrafic: "arrivals" | "departures"
+  typeTrafic: "arrivals" | "departures",
+  delai?: boolean | undefined
 ): Promise<{ totalPage: number; flights: ITrafficFr[] }> {
-  await awaitCall();
+  if (delai) {
+    await awaitCall(2);
+  } else {
+    await awaitCall();
+  }
+
   const dateSearch = DateUtil.dateToTimeStampMinuit(DateUtil.dateNow());
   let queryApi = `code=${airport.toLowerCase()}`;
   //queryApi += `&plugin[]=schedule`;
@@ -331,7 +342,6 @@ async function traficCall(
   queryApi += `&limit=100`;
   queryApi += `&page=${page}`;
   const url = `https://api.flightradar24.com/common/v1/airport.json?${queryApi}`;
-  console.log(url);
   const response = await fetch(url);
   const jsonResponse = await response.json();
 
@@ -502,6 +512,24 @@ export async function trackFlightFr(traffic: Traffic) {
       : "",
     id: flightFound.identification.id,
   };
+}
+
+export async function getTrackingFr(
+  trafficItem: TrafficItemShort
+): Promise<ITrafficFr[]> {
+  const maDate = DateUtil.dateNow();
+  const detailArrival = await traficCall(
+    trafficItem.codeAirport,
+    maDate,
+    1,
+    trafficItem.typeTrafic === "Arrival" ? "arrivals" : "departures",
+    true
+  );
+
+  if (detailArrival.totalPage === 0) {
+    return [];
+  }
+  return detailArrival.flights;
 }
 
 async function getFlightTrack(flightNum: string) {

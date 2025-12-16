@@ -4,7 +4,11 @@ export interface TrafficItem {
   codeAirport: string;
   typeTrafic: TrafficType;
   date: number;
-  // idCentre: number;
+}
+
+export interface TrafficItemShort {
+  codeAirport: string;
+  typeTrafic: TrafficType;
 }
 
 export interface TrafficAirport {
@@ -61,5 +65,21 @@ export interface ITrafficFr {
   act_departure_time: string;
   est_arrival_time: string;
   est_departure_time: string;
+  flight_status: FlightStatus;
+}
+
+export interface ITrackingFlight {
+  id: number;
+  flight_num: string;
+  traffic_date: number;
+  type_traffic: TrafficType;
+  fr_num: string;
+  traffic_airport: string;
+  sch_departure_time: string;
+  sch_arrival_time: string;
+  act_departure_time: string;
+  act_arrival_time: string;
+  est_departure_time: string;
+  est_arrival_time: string;
   flight_status: FlightStatus;
 }

@@ -309,7 +309,7 @@ export type Database = {
           est_departure_time: string;
           act_departure_time: string;
           act_arrival_time: string;
-          flight_status: Database["public"]["Enums"]["flight_status"] | null;
+          flight_status: Database["public"]["Enums"]["flight_status"];
           flight_id: number;
           created_at: string;
         };

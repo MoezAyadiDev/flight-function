@@ -221,3 +221,14 @@ function estimateHour(commentaire: string) {
     }
   return undefined;
 }
+
+export async function getAeroportTracking(
+  flight: TrafficItem
+): Promise<TrackAirport[]> {
+  const airport = await findAeroportByCode(flight.codeAirport);
+
+  if (!airport) return [];
+  return airport.operateur === "OACA"
+    ? await getOacaTrack(flight, airport)
+    : await getTavTrack(flight, airport);
+}

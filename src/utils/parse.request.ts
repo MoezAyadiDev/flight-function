@@ -105,6 +105,11 @@ export function parseTraffics(req: any) {
   return listBody;
 }
 
+export function parseTrackings(req: any) {
+  autorizationMiddleware(req.headers);
+  methodeMiddleware(req.method);
+}
+
 export function parseTracks(req: any) {
   autorizationMiddleware(req.headers);
   methodeMiddleware(req.method);
